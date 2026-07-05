@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Essay Reviewer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f0f13;
+            color: #e2e2e2;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 36px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 16px;
+        }
+
+        .card {
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 15px;
+            color: #e2e2e2;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #a78bfa;
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .row .card {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(90deg, #7c3aed, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            letter-spacing: 0.02em;
+        }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #output { display: none; margin-top: 32px; }
+
+        .score-card {
+            background: linear-gradient(135deg, #1e1333, #132036);
+            border: 1px solid #3b2f6a;
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .score-number {
+            font-size: 56px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .score-summary {
+            font-size: 16px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .result-card {
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .result-card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .result-card p {
+            font-size: 14px;
+            color: #aaa;
+            line-height: 1.7;
+        }
+
+        .tag-structure { color: #a78bfa; }
+        .tag-clarity { color: #60a5fa; }
+        .tag-argument { color: #34d399; }
+        .tag-grammar { color: #f59e0b; }
+
+        .suggestions-card {
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .suggestions-card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #f472b6;
+            margin-bottom: 14px;
+        }
+
+        .suggestions-card p {
+            font-size: 14px;
+            color: #aaa;
+            line-height: 2;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Essay Reviewer</h1>
+            <p>Paste your essay — Claude gives you instant, structured feedback.</p>
+        </div>
+
+        <div class="card">
+            <label for="essay">Your Essay</label>
+            <textarea id="essay" rows="12" placeholder="Paste your essay here..."></textarea>
+        </div>
+
+        <div class="card">
+            <label for="type">Essay Type (optional)</label>
+            <textarea id="type" rows="1" placeholder="e.g. Argumentative, Personal Statement, Research Paper"></textarea>
+        </div>
+
+        <button id="review-btn">Review My Essay</button>
+
+        <div id="output">
+            <div class="score-card">
+                <div class="score-number" id="score"></div>
+                <div class="score-summary" id="score-summary"></div>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <h3 class="tag-structure">Structure</h3>
+                    <p id="structure"></p>
+                </div>
+                <div class="result-card">
+                    <h3 class="tag-clarity">Clarity & Style</h3>
+                    <p id="clarity"></p>
+                </div>
+                <div class="result-card">
+                    <h3 class="tag-argument">Argument & Content</h3>
+                    <p id="argument"></p>
+                </div>
+                <div class="result-card">
+                    <h3 class="tag-grammar">Grammar & Mechanics</h3>
+                    <p id="grammar"></p>
+                </div>
+            </div>
+
+            <div class="suggestions-card">
+                <h3>Top 3 Suggestions</h3>
+                <p id="suggestions"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = prompt("Enter your Anthropic API key:");
+        const btn = document.querySelector("#review-btn");
+        const output = document.querySelector("#output");
+
+        btn.addEventListener("click", async function () {
+            const essay = document.querySelector("#essay").value;
+            const type = document.querySelector("#type").value;
+
+            if (!essay) {
+                alert("Please paste your essay first.");
+                return;
+            }
+
+            btn.textContent = "Reviewing...";
+            btn.disabled = true;
+            output.style.display = "none";
+
+            try {
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                        "x-api-key": API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                        "anthropic-dangerous-direct-browser-access": "true"
+                    },
+                    body: JSON.stringify({
+                        model: "claude-haiku-4-5-20251001",
+                        max_tokens: 1000,
+                        messages: [{
+                            role: "user",
+                            content: `You are an expert essay reviewer. Review the following ${type || "essay"} and respond ONLY with a JSON object in this exact format, no extra text:
+
+{
+  "score": "85/100",
+  "score_summary": "one sentence overall impression",
+  "structure": "feedback on introduction, body, conclusion",
+  "clarity": "feedback on writing clarity and style",
+  "argument": "feedback on argument strength and content",
+  "grammar": "feedback on grammar and mechanics",
+  "suggestions": "1. first suggestion\\n2. second suggestion\\n3. third suggestion"
+}
+
+Essay:
+${essay}`
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const text = data.content[0].text;
+                const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+                const result = JSON.parse(cleaned);
+
+                document.querySelector("#score").textContent = result.score;
+                document.querySelector("#score-summary").textContent = result.score_summary;
+                document.querySelector("#structure").textContent = result.structure;
+                document.querySelector("#clarity").textContent = result.clarity;
+                document.querySelector("#argument").textContent = result.argument;
+                document.querySelector("#grammar").textContent = result.grammar;
+                document.querySelector("#suggestions").textContent = result.suggestions;
+
+                output.style.display = "block";
+
+            } catch (error) {
+                alert("Something went wrong. Check your API key and try again.");
+            }
+
+            btn.textContent = "Review My Essay";
+            btn.disabled = false;
+        });
+    </script>
+</body>
+</html>
